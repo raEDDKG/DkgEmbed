@@ -9,11 +9,12 @@ Knowledge Graph Embedding Microservice (FastAPI)
 - Scores triples with a TransE-style scoring function.
 
 Environment Variables (in a .env file):
-  PG_DSN     : PostgreSQL DSN (e.g., postgresql://user:pass@host:port/dbname)
+    PG_DSN     : PostgreSQL DSN (e.g., postgresql://user:pass@host:port/dbname)
 
 Usage:
-  uvicorn kg_service:app --reload --port 8001
+    uvicorn kg_service:app --reload --port 8001
 """
+
 import os
 import hashlib
 import logging
@@ -253,12 +254,13 @@ def train_graph(req: TrainRequest):
                 INSERT INTO kg_embeddings(uri, vec, snapshot_ual)
                 VALUES %s
                 ON CONFLICT (uri) DO UPDATE
-                  SET vec = EXCLUDED.vec,
-                      snapshot_ual = EXCLUDED.snapshot_ual,
-                      updated_at = now()
+                    SET vec = EXCLUDED.vec,
+                        snapshot_ual = EXCLUDED.snapshot_ual,
+                        updated_at = now()
                 """,
                 ent_rows
             )
+            
             # Relations
             execute_values(
                 cur,
@@ -266,12 +268,13 @@ def train_graph(req: TrainRequest):
                 INSERT INTO kg_rel_embeddings(relation_uri, vec, snapshot_ual)
                 VALUES %s
                 ON CONFLICT (relation_uri) DO UPDATE
-                  SET vec = EXCLUDED.vec,
-                      snapshot_ual = EXCLUDED.snapshot_ual,
-                      updated_at = now()
+                    SET vec = EXCLUDED.vec,
+                        snapshot_ual = EXCLUDED.snapshot_ual,
+                        updated_at = now()
                 """,
                 rel_rows
             )
+
         conn.commit()
     except psycopg2.Error as e:
         logger.error(f"Database upsert failed: {e}")

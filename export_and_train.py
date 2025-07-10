@@ -35,18 +35,26 @@ def set_last_block(conn, block_height):
         )
     conn.commit()
 
-# --- SPARQL & Training Functions ---
+
 SPARQL_TEMPLATE = """
 PREFIX dkg: <https://ontology.origintrail.io/dkg/1.0#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
 SELECT ?s ?p ?o ?block
 WHERE {
-  ?ka dkg:publishedAtBlock ?block .
-  FILTER(?block > %s)
-  GRAPH ?ka { ?s ?p ?o }
+    ?root  dkg:publishedAtBlock ?block ;
+    dkg:hasNamedGraph           ?g .
+
+    FILTER ( xsd:integer(?block) > %s )
+    GRAPH ?g {
+        ?s ?p ?o .
+        FILTER isIRI(?o)
+    }
 }
 ORDER BY ?block
-LIMIT %s
+LIMIT  %s
 """
+
 
 def fetch_triples(last_block, batch_size):
     sparql_query = SPARQL_TEMPLATE % (last_block, batch_size)
