@@ -58,13 +58,22 @@ LIMIT  %s
 
 def fetch_triples(last_block, batch_size):
     sparql_query = SPARQL_TEMPLATE % (last_block, batch_size)
+    
     url = "http://localhost:9999/blazegraph/namespace/dkg/sparql"
     try:
         resp = requests.post(
             url,
-            data={"query": sparql_query, "format": "application/sparql-results+json"},
+            headers={
+                "Accept": "application/sparql-results+json"
+            },
+            data={
+                "query": sparql_query, 
+                "format": "json"
+            },
             timeout=120,
         )
+
+
         resp.raise_for_status()
         rows = resp.json()["results"]["bindings"]
         if not rows:
@@ -88,13 +97,19 @@ def submit_train_job(triples, max_block, batch_size):
                 json={
                     "triples": [{"head": h, "relation": r, "tail": t} for h, r, t in triples],
                     "model_name": "ComplEx",
-                    "dimension": 200,
+                    "dimension": 512,
                     "epochs": 30,
                     "batch_size": batch_size,
                     "max_block": max_block,
                 },
                 timeout=300,
             )
+            # add this temporary debug block right after `resp = requests.post(...)`
+            print("HTTP status :", resp.status_code)
+            print("Content-Type:", resp.headers.get("Content-Type"))
+            print("First 300 B :", resp.text[:300])
+
+
             if resp.status_code == 503:
                 logger.warning(f"Training service returned 503. Retrying in {delay}s... ({i+1}/{retries})")
                 time.sleep(delay)

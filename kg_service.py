@@ -173,6 +173,14 @@ def nearest_neighbors(req: NearestNeighborsRequest):
             db_pool.putconn(conn)
 
 
+def sanitize_for_pg(vec: np.ndarray) -> np.ndarray:
+    """
+    Flatten complex-valued embeddings (n, d) → (n, 2·d) real float32.
+    """
+    if np.iscomplexobj(vec):
+        vec = np.hstack([vec.real, vec.imag])
+    return vec.astype("float32") 
+
 # Endpoint: Train KG embeddings
 @app.post("/train", summary="Train entity + relation embeddings")
 def train_graph(req: TrainRequest):
@@ -213,8 +221,8 @@ def train_graph(req: TrainRequest):
             raise TypeError(f"Unsupported representation type: {type(representation)}")
 
     # Extract learned vectors
-    ent_vecs = to_numpy(result.model.entity_representations[0])
-    rel_vecs = to_numpy(result.model.relation_representations[0])
+    ent_vecs = sanitize_for_pg(to_numpy(result.model.entity_representations[0]))
+    rel_vecs = sanitize_for_pg(to_numpy(result.model.relation_representations[0]))
     
     # Compute snapshot hashes
     triples_bytes = json.dumps([t.dict() for t in req.triples], sort_keys=True).encode('utf-8')
@@ -260,7 +268,7 @@ def train_graph(req: TrainRequest):
                 """,
                 ent_rows
             )
-            
+
             # Relations
             execute_values(
                 cur,
